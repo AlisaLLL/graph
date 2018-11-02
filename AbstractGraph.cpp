@@ -137,10 +137,13 @@ void AbstractGraph::eraseVertex(uint32_t vertexId)
 {
     //erase current vertex from adjacent vertexes(erase edge)
     vector<uint32_t>* v = vertexMap->find(vertexId)->second->getAdjacentVertexId();
-    vector<uint32_t>::iterator itv;
-    for(itv = v->begin(); itv != v->end(); ++itv)
+    if(v != nullptr)
     {
-        vertexMap->find(*itv)->second->eraseNeighborVertex(vertexId);
+        vector<uint32_t>::iterator itv;
+        for(itv = v->begin(); itv != v->end(); ++itv)
+        {
+            vertexMap->find(*itv)->second->eraseNeighborVertex(vertexId);
+        }
     }
 
     //erase current vertex
@@ -170,11 +173,14 @@ void AbstractGraph::eraseVertex(uint32_t vertexId, set<uint32_t> *vertexSet, uin
 {
     eraseVertex(vertexId);
     vector<uint32_t>* v = vertexMap->find(vertexId)->second->getAdjacentVertexId();
-    vector<uint32_t>::iterator it;
-    for(it = v->begin(); it != v->end(); it++)
+    if(v != nullptr)
     {
-        if(getNeighborNum(*it) < k)
-            vertexSet->insert(*it);
+        vector<uint32_t>::iterator it;
+        for(it = v->begin(); it != v->end(); it++)
+        {
+            if(getNeighborNum(*it) < k)
+                vertexSet->insert(*it);
+        }
     }
 }
 

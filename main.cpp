@@ -56,8 +56,9 @@ AbstractGraph* buildGraph(string filePath)
     return graph;
 }
 
-AbstractGraph* findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<AbstractGraph*>* coreGraphs, uint32_t** index)
+void findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<AbstractGraph*>* coreGraphs, uint32_t** index)
 {
+    cout << "find " << k << " " << h << "core" << endl;
     AbstractGraph *cgraph = new AbstractGraph(fgraph);
     set<uint32_t> *vertexSet = new set<uint32_t>;
     set<pair<uint32_t,uint32_t>> *edgeSet = new set<pair<uint32_t,uint32_t>>;
@@ -76,24 +77,35 @@ AbstractGraph* findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vect
         if(cgraph->getNeighborNum(edge->second) < k)
             vertexSet->insert(edge->second);
     }
-
+    cout << "test" << endl;
     //erase unsatisfied vertices
     while(1)
     {
         if(vertexSet->size() == 0)
             break;
-        set<uint32_t>::iterator vertex = vertexSet->begin();
+        set<uint32_t>::iterator vertex = vertexSet->begin();   
         cgraph->eraseVertex(*vertex,vertexSet,k);
         vertexSet->erase(vertex);
+        cout << "test" << endl;
     }
     delete vertexSet;
     delete edgeSet;
-
     coreGraphs->push_back(cgraph);
-    index[k][h] = uint32_t(coreGraphs->size()-1); //-1?
-    return cgraph;
+    index[k][h] = uint32_t(coreGraphs->size()-1);
+    cout << "find " << k << " " << h << "core finished!" << endl;
 }
 
+AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
+{
+    AbstractGraph* ngraph = new AbstractGraph(subgraph);
+
+}
+
+
+void findAPproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph, vector<AbstractGraph*>* approximateCoreGraphs, uint32_t** index)
+{
+    AbstractGraph* ngraph = findNeighborGraph(subgraph, fgraph);
+}
 
 
 int main()
@@ -118,31 +130,45 @@ int main()
     {
         index[i] = new uint32_t[HMAX];
     }
-    // k_max now? h_max now?
-    /*for(uint32_t k = 1; k < k_max; k++)
-    {
-        for(uint32_t h = 1; h < h_max; h++)
-        {
-            if(k==1 && h==1)
-                findCoreGraph(k,h,graph,coreGraphs,index);
-            else if(h==1 && k>1)
-                findCoreGraph(k,h,coreGraphs[index[k-1][h]],coreGraphs,index);
-            else
-                findCoreGraph(k,h,coreGraphs[index[k][h-1]],coreGraphs,index);
-        }
 
-    }*/
-    AbstractGraph* core22 = findCoreGraph(2, 2, graph, coreGraphs, index);
+    // LCD
+    uint32_t k_max = 2, h_max = 2; //th maximal degree of original graph
+    uint32_t k = 1;
+    findCoreGraph(1,1,graph,coreGraphs,index);
+    while(k <= k_max)
+    {
+        if(k != 1)
+        {
+            vector<AbstractGraph*>::iterator it = coreGraphs->begin()+index[k-1][1];
+            findCoreGraph(k,1,*it,coreGraphs,index);
+        }
+        uint32_t h = 1;
+        while(h < h_max)
+        {
+            vector<AbstractGraph*>::iterator it2 = coreGraphs->begin()+index[k][h];
+            findCoreGraph(k,h+1,*it2,coreGraphs,index);
+            it2 = coreGraphs->begin()+index[k][h+1];
+            if(*it2 == nullptr)
+                break;
+            h++;
+        }
+        k++;
+    }
+
+    // TCD
+
+    //vector<AbstractGraph*>::iterator it = coreGraphs->begin()+index[2][2];
+    //AbstractGraph* core22 = *it;
 
 
     //delete subgraph
-    //AbstractGraph* delSubGraph = buildGraph("/home/netlab/C++/GraphFrame/delete.txt");
+    AbstractGraph* delSubGraph = buildGraph("/home/netlab/C++/GraphFrame/delete.txt");
 
     //graph.deleteSubgraph();
 
     cout << endl;
     //cout << "------ " << k << " core " << h << " edge -----" << endl;
-    cout << "vertex size: " << graph->getSize() << endl;
+    //cout << "vertex size: " << graph->getSize() << endl;
     core22->printEdges();
 
 

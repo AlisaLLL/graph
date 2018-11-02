@@ -74,6 +74,8 @@ uint32_t AbstractVertex::getNeighborNum()
 
 vector<uint32_t>* AbstractVertex::getAdjacentVertexId()
 {
+    if(edgeMap->size()==0)
+        return nullptr;
     vector<uint32_t>* v = new vector<uint32_t>;
     unordered_map<uint32_t,map<uint32_t,bool*>*>::iterator it;
     for(it=edgeMap->begin(); it!=edgeMap->end(); it++)
