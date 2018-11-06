@@ -11,9 +11,11 @@ public:
     ~AbstractGraph();
 
     AbstractVertex* getVertex(uint32_t vertexId); //old
+    vector<uint32_t>* getVertexIds();
     uint32_t getNeighborNum(uint32_t vertexId);
     //uint32_t getEdgeNum(uint32_t v1, uint32_t v2);
     uint32_t getSize();
+    void getNeighborEdgeSet(uint32_t vertexId, set<pair<uint32_t,uint32_t>>* edgeSet); // return set(neighborVertexId,timestamp)
     void printEdges();
 
     void _addEdge(uint32_t sourceVertexId, uint32_t destVertexId, uint32_t timestamp);
@@ -26,7 +28,7 @@ public:
 
     void unSatisfiedVertexAndEdge(uint32_t k, uint32_t h, set<uint32_t> *vertexSet, set<pair<uint32_t,uint32_t>> *edgeSet);
 
-    void eraseVertex(uint32_t vertexId);  //old
+    void eraseVertex(uint32_t vertexId);
     void eraseVertex(uint32_t vertexId, set<uint32_t> *vertexSet, uint32_t k);
     void eraseVertex(queue<uint32_t>* q);
     void eraseEdges(uint32_t v1, uint32_t v2);

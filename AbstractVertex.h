@@ -18,11 +18,12 @@ public:
     bool existEdge(uint32_t vertexId); //adjacent vertexId
     bool existEdgeTime(uint32_t vertexId, uint32_t timestamp); //adjacent vertexId
     bool isSatisfiedVertex(uint32_t k, uint32_t h);
-    queue<uint32_t>* findRedundantNeighbor(uint32_t h);
+    //queue<uint32_t>* findRedundantNeighbor(uint32_t h);
 
     uint32_t getVertexId();  //current vertexId
     uint32_t getNeighborNum();
     vector<uint32_t>* getAdjacentVertexId();
+    void getEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet);
     vector<uint32_t>* getUnsatisfiedNeighborId(uint32_t h);
 
 

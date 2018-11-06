@@ -85,6 +85,18 @@ vector<uint32_t>* AbstractVertex::getAdjacentVertexId()
     return v;
 }
 
+void AbstractVertex::getEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet)
+{
+
+    unordered_map<uint32_t,map<uint32_t,bool*>*>::iterator it;
+    for(it=edgeMap->begin(); it!=edgeMap->end(); it++)
+    {
+        map<uint32_t,bool*>::iterator it2;
+        for(it2=it->second->begin(); it2!=it->second->end(); it2++)
+            edgeSet->insert({it->first,it2->first});
+    }
+}
+
 vector<uint32_t>* AbstractVertex::getUnsatisfiedNeighborId(uint32_t h)
 {
     vector<uint32_t>* v = new vector<uint32_t>;
@@ -115,7 +127,7 @@ bool AbstractVertex::isSatisfiedVertex(uint32_t k, uint32_t h)
     return true;
 }
 
-queue<uint32_t>* AbstractVertex::findRedundantNeighbor(uint32_t h)
+/*queue<uint32_t>* AbstractVertex::findRedundantNeighbor(uint32_t h)
 {
     queue<uint32_t> *q = new queue<uint32_t>;
     unordered_map<uint32_t,map<uint32_t,bool*>*>::iterator it;
@@ -125,7 +137,7 @@ queue<uint32_t>* AbstractVertex::findRedundantNeighbor(uint32_t h)
             q->push(it->first);
     }
     return q;
-}
+}*/
 
 
 void AbstractVertex::insertAdjacentEdge(uint32_t vertexId)

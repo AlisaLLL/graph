@@ -98,13 +98,32 @@ void findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<Abstrac
 AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
 {
     AbstractGraph* ngraph = new AbstractGraph(subgraph);
+    vector<uint32_t>* vIds = ngraph->getVertexIds();
 
+    vector<uint32_t>::iterator it;
+    for(it = vIds->begin(); it!= vIds->end(); it++)
+    {
+        set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
+        fgraph->getNeighborEdgeSet(*it,edgeSet);
+
+        set<pair<uint32_t,uint32_t>>::iterator it2;
+        for(it2=edgeSet->begin(); it2!=edgeSet->end(); it2++)
+        {
+            ngraph->addEdge(*it,it2->first,it2->second);
+        }
+
+        delete edgeSet;
+    }
+    delete vIds;
+
+    return ngraph;
 }
 
 
 void findAPproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph, vector<AbstractGraph*>* approximateCoreGraphs, uint32_t** index)
 {
     AbstractGraph* ngraph = findNeighborGraph(subgraph, fgraph);
+
 }
 
 
@@ -120,7 +139,7 @@ int main()
     //cout << "----- Subgraph ----" << endl;
     //subgraph->printEdges();
 
-
+    /*
     cout << "----- (k,h)-core Graph -----" << endl;
     //Abstract k-core,h-edge subgraph
     //uint32_t k = 2, h = 2;   //2-neighbor,2-edge;
@@ -153,7 +172,7 @@ int main()
             h++;
         }
         k++;
-    }
+    }*/
 
     // TCD
 
@@ -164,12 +183,12 @@ int main()
     //delete subgraph
     AbstractGraph* delSubGraph = buildGraph("/home/netlab/C++/GraphFrame/delete.txt");
 
-    //graph.deleteSubgraph();
 
-    cout << endl;
-    //cout << "------ " << k << " core " << h << " edge -----" << endl;
-    //cout << "vertex size: " << graph->getSize() << endl;
-    core22->printEdges();
+    //graph.deleteSubgraph();
+    AbstractGraph* neighborGraph = findNeighborGraph(delSubGraph,graph);
+
+    cout << "---- neighbor graph ----" << endl;
+    neighborGraph->printEdges();
 
 
 
