@@ -56,13 +56,18 @@ AbstractGraph* buildGraph(string filePath)
     return graph;
 }
 
-void findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<AbstractGraph*>* coreGraphs, uint32_t** index)
+AbstractGraph* findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph)
 {
     cout << "find " << k << " " << h << "core" << endl;
     AbstractGraph *cgraph = new AbstractGraph(fgraph);
     set<uint32_t> *vertexSet = new set<uint32_t>;
     set<pair<uint32_t,uint32_t>> *edgeSet = new set<pair<uint32_t,uint32_t>>;
     cgraph->unSatisfiedVertexAndEdge(k,h,vertexSet,edgeSet);
+    if(vertexSet->size()==cgraph->getVertexNum() || edgeSet->size()==cgraph->getVertexPairNum())
+    {
+        delete cgraph;
+        return nullptr;
+    }
 
     //erase unsatisfied edges
     while(1)
@@ -86,13 +91,62 @@ void findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<Abstrac
         set<uint32_t>::iterator vertex = vertexSet->begin();   
         cgraph->eraseVertex(*vertex,vertexSet,k); // erase *vertex and push its unsaitsfied neighbor into vertexSet
         vertexSet->erase(vertex);
-        cout << "test" << endl;
     }
     delete vertexSet;
     delete edgeSet;
-    coreGraphs->push_back(cgraph);
-    index[k][h] = uint32_t(coreGraphs->size()-1);
-    cout << "find " << k << " " << h << "core finished!" << endl;
+
+    if(cgraph->getVertexNum() == 0 || cgraph->getVertexPairNum() == 0)
+    {
+        delete cgraph;
+        return nullptr;
+    }
+
+    return cgraph;
+}
+
+void treeCoreDecomposition(AbstractGraph* graph,vector<AbstractGraph*>* coreGraphs, uint32_t** index)
+{
+    AbstractGraph* c11graph = findCoreGraph(1,1,graph);
+    coreGraphs->push_back(c11graph);
+    index[1][1] = uint32_t(coreGraphs->size()-1);
+    queue<AbstractGraph*> graphQueue;
+    queue<pair<uint32_t,uint32_t>> khQueue;
+    graphQueue.push(c11graph);
+    khQueue.push({1,1});
+
+    while(!graphQueue.empty())
+    {
+        AbstractGraph* cgraph = graphQueue.front();
+        graphQueue.pop();
+        uint32_t k = khQueue.front().first;
+        uint32_t h = khQueue.front().second;
+        khQueue.pop();
+        AbstractGraph* tgraph;
+
+        if(index[k+1][h] == 0)
+        {
+            tgraph = findCoreGraph(k+1,h,cgraph);
+            if(tgraph != nullptr)
+            {
+                coreGraphs->push_back(tgraph);
+                index[k+1][h] = uint32_t(coreGraphs->size()-1);
+                graphQueue.push(tgraph);
+                khQueue.push({k+1,h});
+            }
+        }
+
+        if(index[k][h+1] == 0)
+        {
+            tgraph = findCoreGraph(k,h+1,cgraph);
+            if(tgraph != nullptr)  //? how to express a empty graph
+            {
+                coreGraphs->push_back(tgraph);
+                index[k][h+1] = uint32_t(coreGraphs->size()-1);
+                graphQueue.push(tgraph);
+                khQueue.push({k,h+1});
+            }
+        }
+    }
 }
 
 AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
@@ -120,7 +174,7 @@ AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
 }
 
 
-AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph, vector<AbstractGraph*>* approximateCoreGraphs, uint32_t** index)
+AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph)
 {
     AbstractGraph* agraph = new AbstractGraph(subgraph);
     AbstractGraph* ngraph = findNeighborGraph(subgraph, fgraph);
@@ -144,6 +198,15 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
             it2++;
     }
 
+    if(vertexSet->size()==agraph->getVertexNum() || edgeSet->size()==agraph->getVertexPairNum())
+    {
+        delete agraph;
+        delete vertexSet;
+        delete edgeSet;
+        delete ngraph;
+        return nullptr;
+    }
+
     //erase unsatisfied edges
     while(1)
     {
@@ -165,19 +228,73 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
         if(vertexSet->size() == 0)
             break;
         set<uint32_t>::iterator vertex = vertexSet->begin();
-        ngraph->eraseVertex(*vertex); // erase *vertex and push its unsaitsfied neighbor into vertexSet
-        agraph->eraseVertex(*vertex,vertexSet,k);
+        ngraph->eraseVertex(*vertex);
+        agraph->eraseVertex(*vertex,vertexSet,k);// erase *vertex and push its unsaitsfied neighbor into vertexSet
         vertexSet->erase(vertex);
-        cout << "test" << endl;
+        //cout << "test" << endl;
     }
 
     delete vertexSet;
     delete edgeSet;
     delete ngraph;  //?
 
+    if(agraph->getVertexNum()==0 || agraph->getVertexPairNum()==0)
+    {
+        delete agraph;
+        return nullptr;
+    }
+
     return agraph;
 }
 
+void treeCoreDecompositionOnIncompleteGraph(AbstractGraph* subgraph, AbstractGraph* fgraph,
+                                            vector<AbstractGraph*>* approximateCoreGraphs, uint32_t** index)
+{
+    AbstractGraph* a11graph = findAproximateCoreGraph(1,1,subgraph,fgraph);
+    approximateCoreGraphs->push_back(a11graph);
+    index[1][1] = uint32_t(approximateCoreGraphs->size()-1);
+    queue<AbstractGraph*> graphQueue;
+    queue<pair<uint32_t,uint32_t>> khQueue;
+    graphQueue.push(a11graph);
+    khQueue.push({1,1});
+
+    while(!graphQueue.empty())
+    {
+        AbstractGraph* cgraph = graphQueue.front(); //current graph
+        graphQueue.pop();
+        uint32_t k = khQueue.front().first;
+        uint32_t h = khQueue.front().second;
+        khQueue.pop();
+
+        if(index[k+1][h] == 0)
+        {
+            AbstractGraph* cNeighborGraph = findNeighborGraph(cgraph,fgraph);
+            AbstractGraph* tgraph = findAproximateCoreGraph(k+1,h,cgraph,cNeighborGraph);
+            if(tgraph != nullptr)
+            {
+                graphQueue.push(tgraph);
+                khQueue.push({k+1,h});
+                approximateCoreGraphs->push_back(tgraph);
+                index[k+1][h]=uint32_t(approximateCoreGraphs->size()-1);
+            }
+            delete cNeighborGraph;
+        }
+
+        if(index[k][h+1] == 0)
+        {
+            AbstractGraph* cNeighborGraph = findNeighborGraph(cgraph,fgraph);
+            AbstractGraph* tgraph = findAproximateCoreGraph(k+1,h,cgraph,cNeighborGraph);
+            if(tgraph != nullptr)
+            {
+                graphQueue.push(tgraph);
+                khQueue.push({k,h+1});
+                approximateCoreGraphs->push_back(tgraph);
+                index[k][h+1]=uint32_t(approximateCoreGraphs->size()-1);
+            }
+            delete cNeighborGraph;
+        }
+    }
+}
 
 int main()
 {
@@ -191,7 +308,7 @@ int main()
     //cout << "----- Subgraph ----" << endl;
     //subgraph->printEdges();
 
-    /*
+
     cout << "----- (k,h)-core Graph -----" << endl;
     //Abstract k-core,h-edge subgraph
     //uint32_t k = 2, h = 2;   //2-neighbor,2-edge;
@@ -199,34 +316,11 @@ int main()
     uint32_t **index = new uint32_t*[KMAX];
     for(uint32_t i=0; i<KMAX; i++)
     {
-        index[i] = new uint32_t[HMAX];
+        index[i] = new uint32_t[HMAX]();
     }
 
-    // LCD
-    uint32_t k_max = 2, h_max = 2; //th maximal degree of original graph
-    uint32_t k = 1;
-    findCoreGraph(1,1,graph,coreGraphs,index);
-    while(k <= k_max)
-    {
-        if(k != 1)
-        {
-            vector<AbstractGraph*>::iterator it = coreGraphs->begin()+index[k-1][1];
-            findCoreGraph(k,1,*it,coreGraphs,index);
-        }
-        uint32_t h = 1;
-        while(h < h_max)
-        {
-            vector<AbstractGraph*>::iterator it2 = coreGraphs->begin()+index[k][h];
-            findCoreGraph(k,h+1,*it2,coreGraphs,index);
-            it2 = coreGraphs->begin()+index[k][h+1];
-            if(*it2 == nullptr)
-                break;
-            h++;
-        }
-        k++;
-    }*/
+    treeCoreDecomposition(graph,coreGraphs,index);
 
-    // TCD
 
     //vector<AbstractGraph*>::iterator it = coreGraphs->begin()+index[2][2];
     //AbstractGraph* core22 = *it;

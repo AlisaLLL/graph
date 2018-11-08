@@ -89,9 +89,28 @@ void AbstractGraph::addEdge(uint32_t sourceVertexId, uint32_t destVertexId, uint
     return nullptr;
 }*/
 
-uint32_t AbstractGraph::getSize()
+uint32_t AbstractGraph::getVertexNum()
 {
     return uint32_t(vertexMap->size());
+}
+
+uint32_t AbstractGraph::getVertexPairNum()
+{
+    set<pair<uint32_t,uint32_t>> *edgeSet = getEdgeSet();
+    uint32_t num = uint32_t(edgeSet->size());
+    delete edgeSet;
+    return num;
+}
+
+set<pair<uint32_t,uint32_t>>* AbstractGraph::getEdgeSet()
+{
+    set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
+    unordered_map<uint32_t,AbstractVertex*>::iterator it;
+    for(it = vertexMap->begin(); it != vertexMap->end(); it++)
+    {
+        it->second->getEdgeSet(edgeSet);
+    }
+    return edgeSet;
 }
 
 void AbstractGraph::getNeighborEdgeSet(uint32_t vertexId, set<pair<uint32_t,uint32_t>>* edgeSet)
