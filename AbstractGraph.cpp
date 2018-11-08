@@ -28,7 +28,7 @@ AbstractGraph::~AbstractGraph()
 {
     Utils::releaseMemory(this->vertexMap);
 }
-
+/*
 AbstractVertex* AbstractGraph::getVertex(uint32_t vertexId)
 {
     if(vertexMap->count(vertexId))
@@ -36,15 +36,15 @@ AbstractVertex* AbstractGraph::getVertex(uint32_t vertexId)
         return vertexMap->find(vertexId)->second;
     }
     return nullptr;
-}
+}*/
 
-vector<uint32_t>* AbstractGraph::getVertexIds()
+set<uint32_t>* AbstractGraph::getVertexIds()
 {
-    vector<uint32_t>* vIds = new vector<uint32_t>;
+    set<uint32_t>* vIds = new set<uint32_t>;
     unordered_map<uint32_t,AbstractVertex*>::iterator it;
     for(it = vertexMap->begin(); it != vertexMap->end(); it++)
     {
-        vIds->push_back(it->first);
+        vIds->insert(it->first);
     }
     return vIds;
 }
@@ -126,6 +126,21 @@ queue<uint32_t>* AbstractGraph::unSatisfiedVertex(uint32_t k,uint32_t h)
     }
     return q;
 }
+
+bool AbstractGraph::isSatisfiedKVertex(uint32_t vertexId, uint32_t k)
+{
+    if(vertexMap->find(vertexId)->second->getNeighborNum()<k)
+        return false;
+    return true;
+}
+
+bool AbstractGraph::isSatisfiedHEdge(pair<uint32_t,uint32_t> edge, uint32_t h)
+{
+    if(vertexMap->find(edge.first)->second->getNeighborEdgeNum(edge.second) < h)
+        return false;
+    return true;
+}
+
 
 void AbstractGraph::unSatisfiedVertexAndEdge(uint32_t k, uint32_t h, set<uint32_t> *vertexSet, set<pair<uint32_t,uint32_t>> *edgeSet)
 {

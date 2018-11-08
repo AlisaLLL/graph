@@ -72,6 +72,10 @@ uint32_t AbstractVertex::getNeighborNum()
     return uint32_t(edgeMap->size());
 }
 
+uint32_t AbstractVertex::getNeighborEdgeNum(uint32_t vertexId)
+{
+    return uint32_t(edgeMap->find(vertexId)->second->size());
+}
 vector<uint32_t>* AbstractVertex::getAdjacentVertexId()
 {
     if(edgeMap->size()==0)

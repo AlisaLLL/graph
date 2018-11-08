@@ -77,14 +77,14 @@ void findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<Abstrac
         if(cgraph->getNeighborNum(edge->second) < k)
             vertexSet->insert(edge->second);
     }
-    cout << "test" << endl;
+    //cout << "test" << endl;
     //erase unsatisfied vertices
     while(1)
     {
         if(vertexSet->size() == 0)
             break;
         set<uint32_t>::iterator vertex = vertexSet->begin();   
-        cgraph->eraseVertex(*vertex,vertexSet,k);
+        cgraph->eraseVertex(*vertex,vertexSet,k); // erase *vertex and push its unsaitsfied neighbor into vertexSet
         vertexSet->erase(vertex);
         cout << "test" << endl;
     }
@@ -98,9 +98,9 @@ void findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph, vector<Abstrac
 AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
 {
     AbstractGraph* ngraph = new AbstractGraph(subgraph);
-    vector<uint32_t>* vIds = ngraph->getVertexIds();
+    set<uint32_t>* vIds = ngraph->getVertexIds();
 
-    vector<uint32_t>::iterator it;
+    set<uint32_t>::iterator it;
     for(it = vIds->begin(); it!= vIds->end(); it++)
     {
         set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
@@ -120,10 +120,62 @@ AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
 }
 
 
-void findAPproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph, vector<AbstractGraph*>* approximateCoreGraphs, uint32_t** index)
+AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph, vector<AbstractGraph*>* approximateCoreGraphs, uint32_t** index)
 {
+    AbstractGraph* agraph = new AbstractGraph(subgraph);
     AbstractGraph* ngraph = findNeighborGraph(subgraph, fgraph);
+    set<pair<uint32_t,uint32_t>> *edgeSet = agraph->getEdgeSet();
+    set<uint32_t>* vertexSet = agraph->getVertexIds();
 
+    set<uint32_t>::iterator it;
+    for(it = vertexSet->begin(); it!= vertexSet->end();)
+    {
+        if(ngraph->isSatisfiedKVertex(*it,k))
+            it = vertexSet->erase(it);
+        else
+            it++;
+    }
+    set<pair<uint32_t,uint32_t>>::iterator it2;
+    for(it2=edgeSet->begin(); it2!=edgeSet->end();)
+    {
+        if(ngraph->isSatisfiedHEdge(*it2,h))
+            it2 = edgeSet->erase(it2);
+        else
+            it2++;
+    }
+
+    //erase unsatisfied edges
+    while(1)
+    {
+        if(edgeSet->size() == 0)
+            break;
+        set<pair<uint32_t,uint32_t>>::iterator edge = edgeSet->begin();
+        agraph->eraseEdges(edge->first,edge->second);
+        ngraph->eraseEdges(edge->first,edge->second);
+        edgeSet->erase(edge);
+        if(ngraph->getNeighborNum(edge->first) < k)
+            vertexSet->insert(edge->first);
+        if(ngraph->getNeighborNum(edge->second) < k)
+            vertexSet->insert(edge->second);
+    }
+
+    //erase unsatisfied vertices
+    while(1)
+    {
+        if(vertexSet->size() == 0)
+            break;
+        set<uint32_t>::iterator vertex = vertexSet->begin();
+        ngraph->eraseVertex(*vertex); // erase *vertex and push its unsaitsfied neighbor into vertexSet
+        agraph->eraseVertex(*vertex,vertexSet,k);
+        vertexSet->erase(vertex);
+        cout << "test" << endl;
+    }
+
+    delete vertexSet;
+    delete edgeSet;
+    delete ngraph;  //?
+
+    return agraph;
 }
 
 

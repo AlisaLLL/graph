@@ -22,6 +22,7 @@ public:
 
     uint32_t getVertexId();  //current vertexId
     uint32_t getNeighborNum();
+    uint32_t getNeighborEdgeNum(uint32_t vertexId); //neighbor vertexId
     vector<uint32_t>* getAdjacentVertexId();
     void getEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet);
     vector<uint32_t>* getUnsatisfiedNeighborId(uint32_t h);
