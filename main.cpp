@@ -296,6 +296,49 @@ void treeCoreDecompositionOnIncompleteGraph(AbstractGraph* subgraph, AbstractGra
     }
 }
 
+void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_index,AbstractGraph* delSubGraph, AbstractGraph* fgraph)
+{
+    vector<AbstractGraph*>* approximateCoreGraphs = new vector<AbstractGraph*>;
+    uint32_t** a_index = new uint32_t*[KMAX];
+    for(uint32_t i=0; i<KMAX; i++)
+    {
+        a_index[i] = new uint32_t[HMAX]();
+    }
+    treeCoreDecompositionOnIncompleteGraph(delSubGraph,fgraph,approximateCoreGraphs,a_index);
+
+    vector<AbstractGraph*>::iterator ait;
+    uint32_t count = 0;
+    int k,h;
+    for(ait = approximateCoreGraphs->begin(); ait != approximateCoreGraphs->end(); ait++)
+    {
+        AbstractGraph* agraph = *ait;
+        for(k=1; k<KMAX; ++k)
+        {
+            for(h=1; h<HMAX; ++h)
+            {
+                if(a_index[k][h] == count)
+                    break;
+            }
+        }
+        count++; //index of approximateCoreGraphs
+        if(c_index[k][h] == 0)
+            if(!(k==1 && h==1))
+                continue;
+        AbstractGraph *cgraph = *coreGraphs->begin()+c_index[k][h];
+
+
+    }
+
+
+    delete approximateCoreGraphs;
+}
+
+/*
+void updateCoreGraphInsert()
+{
+
+}*/
+
 int main()
 {
     AbstractGraph* graph = buildGraph("/home/netlab/C++/GraphFrame/input.txt");
