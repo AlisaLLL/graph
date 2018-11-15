@@ -32,6 +32,7 @@ public:
     void insertAdjacentEdge(uint32_t vertexId);  //adjacent vertexId
     void insertAdjacentEdge(uint32_t vertexId, uint32_t timestamp); //adjacent vertexId
     void eraseNeighborVertex(uint32_t vertexId); //adjacent vertexId
+    void eraseEdge(uint32_t vertexId, uint32_t timestamp);
     //void eraseVertex();
 
     void printEdges();

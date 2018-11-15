@@ -103,6 +103,7 @@ void AbstractVertex::getEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet)
             else
                 edgeSet->insert({it2->first,it->first});
         }
+    }
 }
 
 vector<uint32_t>* AbstractVertex::getUnsatisfiedNeighborId(uint32_t h)
@@ -183,6 +184,11 @@ void AbstractVertex::eraseNeighborVertex(uint32_t vertexId)
     edgeMap->erase(it);
     //cout << "erase edge " << this->vertexId << " " << vertexId << endl;
     //cout << "function: Vertex eraseVertex(vertexId)" << vertexId << "finished" << endl;
+}
+
+void AbstractVertex::eraseEdge(uint32_t vertexId, uint32_t timestamp)
+{
+    edgeMap->find(vertexId)->second->erase(timestamp);
 }
 
 void AbstractVertex::printEdges()

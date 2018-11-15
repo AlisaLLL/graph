@@ -28,7 +28,7 @@ AbstractGraph::~AbstractGraph()
 {
     Utils::releaseMemory(this->vertexMap);
 }
-/*
+
 AbstractVertex* AbstractGraph::getVertex(uint32_t vertexId)
 {
     if(vertexMap->count(vertexId))
@@ -36,7 +36,7 @@ AbstractVertex* AbstractGraph::getVertex(uint32_t vertexId)
         return vertexMap->find(vertexId)->second;
     }
     return nullptr;
-}*/
+}
 
 set<uint32_t>* AbstractGraph::getVertexIds()
 {
@@ -72,6 +72,24 @@ void AbstractGraph::addEdge(uint32_t sourceVertexId, uint32_t destVertexId, uint
 {
     _addEdge(sourceVertexId,destVertexId,timestamp);
     _addEdge(destVertexId,sourceVertexId,timestamp);
+}
+
+void AbstractGraph::joinGraph(AbstractGraph* graph)
+{
+    set<uint32_t>* vIds = graph->getVertexIds();
+    set<uint32_t>::iterator vit;
+    for(vit = vIds->begin(); vit!= vIds->end(); vit++)
+    {
+        set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
+        graph->getNeighborEdgeSet(*vit,edgeSet);
+
+        set<pair<uint32_t,uint32_t>>::iterator eit;
+        for(eit=edgeSet->begin(); eit!=edgeSet->end(); eit++)
+        {
+            if(!this->existEdge(*vit,eit->first,eit->second))
+                this->addEdge(*vit,eit->first,eit->second);
+        }
+    }
 }
 
 /*void AbstractGraph::addVertex(uint32_t vertexId, AbstractVertex* edgeMap)
@@ -148,7 +166,7 @@ queue<uint32_t>* AbstractGraph::unSatisfiedVertex(uint32_t k,uint32_t h)
 
 bool AbstractGraph::isSatisfiedKVertex(uint32_t vertexId, uint32_t k)
 {
-    if(vertexMap->find(vertexId)->second->getNeighborNum()<k)
+    if(getNeighborNum(vertexId)<k)
         return false;
     return true;
 }
@@ -156,6 +174,15 @@ bool AbstractGraph::isSatisfiedKVertex(uint32_t vertexId, uint32_t k)
 bool AbstractGraph::isSatisfiedHEdge(pair<uint32_t,uint32_t> edge, uint32_t h)
 {
     if(vertexMap->find(edge.first)->second->getNeighborEdgeNum(edge.second) < h)
+        return false;
+    return true;
+}
+
+bool AbstractGraph::existEdge(uint32_t v1, uint32_t v2, uint32_t timestamp)
+{
+    if(!vertexMap->count(v1))
+        return false;
+    if(!vertexMap->find(v1)->second->existEdgeTime(v2,timestamp))
         return false;
     return true;
 }
@@ -241,25 +268,13 @@ void AbstractGraph::eraseEdges(uint32_t v1, uint32_t v2)
     vertexMap->find(v2)->second->eraseNeighborVertex(v1);
 }
 
-/*
-void AbstractGraph::deleteOneEdge(uint32_t u, uint32_t v, uint32_t t)
+
+void AbstractGraph::eraseOneEdge(uint32_t v1, uint32_t v2, uint32_t timestamp)
 {
-    //find B+: adjacent vertices
-    unordered_set<uint32_t> s;
-    s.insert(u); s.insert(v);
-    vector<uint32_t> *neighbor = vertexMap->find(u)->second->getAdjacentVertexId();
-    vector<uint32_t>:: iterator it;
-    for(it = neighbor->begin(); it != neighbor->end(); it++)
-    {
-        s.insert(*it);
-    }
-    neighbor = vertexMap->find(v)->second->getAdjacentVertexId();
-    for(it = neighbor->begin(); it != neighbor->end(); it++)
-    {
-        s.insert(*it);
-    }
+    vertexMap->find(v1)->second->eraseEdge(v2,timestamp);
+    vertexMap->find(v2)->second->eraseEdge(v1,timestamp);
 }
-*/
+
 
 
 
