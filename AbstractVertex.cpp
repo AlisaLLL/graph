@@ -76,6 +76,7 @@ uint32_t AbstractVertex::getNeighborEdgeNum(uint32_t vertexId)
 {
     return uint32_t(edgeMap->find(vertexId)->second->size());
 }
+
 vector<uint32_t>* AbstractVertex::getAdjacentVertexId()
 {
     if(edgeMap->size()==0)
@@ -89,20 +90,29 @@ vector<uint32_t>* AbstractVertex::getAdjacentVertexId()
     return v;
 }
 
+//edgeSet<v1,v2>
 void AbstractVertex::getEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet)
 {
 
     unordered_map<uint32_t,map<uint32_t,bool*>*>::iterator it;
     for(it=edgeMap->begin(); it!=edgeMap->end(); it++)
     {
+        if(it->first > this->vertexId)
+            edgeSet->insert({this->vertexId,it->first});
+        else
+            edgeSet->insert({it->first,this->vertexId});
+    }
+}
+
+//edgeSet<neighborVertexId,timestamp>
+void AbstractVertex::getNeighborEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet)
+{
+    unordered_map<uint32_t,map<uint32_t,bool*>*>::iterator it;
+    for(it=edgeMap->begin(); it!=edgeMap->end(); it++)
+    {
         map<uint32_t,bool*>::iterator it2;
         for(it2=it->second->begin(); it2!=it->second->end(); it2++)
-        {
-            if(it->first < it2->first)
-                edgeSet->insert({it->first,it2->first});
-            else
-                edgeSet->insert({it2->first,it->first});
-        }
+            edgeSet->insert({it->first,it2->first});
     }
 }
 

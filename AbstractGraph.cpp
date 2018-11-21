@@ -80,8 +80,7 @@ void AbstractGraph::joinGraph(AbstractGraph* graph)
     set<uint32_t>::iterator vit;
     for(vit = vIds->begin(); vit!= vIds->end(); vit++)
     {
-        set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
-        graph->getNeighborEdgeSet(*vit,edgeSet);
+        set<pair<uint32_t,uint32_t>>* edgeSet = graph->getNeighborEdgeSet(*vit);
 
         set<pair<uint32_t,uint32_t>>::iterator eit;
         for(eit=edgeSet->begin(); eit!=edgeSet->end(); eit++)
@@ -131,9 +130,11 @@ set<pair<uint32_t,uint32_t>>* AbstractGraph::getEdgeSet()
     return edgeSet;
 }
 
-void AbstractGraph::getNeighborEdgeSet(uint32_t vertexId, set<pair<uint32_t,uint32_t>>* edgeSet)
+set<pair<uint32_t,uint32_t>>* AbstractGraph::getNeighborEdgeSet(uint32_t vertexId)
 {
-    vertexMap->find(vertexId)->second->getEdgeSet(edgeSet);
+    set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
+    vertexMap->find(vertexId)->second->getNeighborEdgeSet(edgeSet);
+    return edgeSet;
 }
 
 void AbstractGraph::printEdges()

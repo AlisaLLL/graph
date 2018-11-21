@@ -157,8 +157,7 @@ AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
     set<uint32_t>::iterator it;
     for(it = vIds->begin(); it!= vIds->end(); it++)
     {
-        set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
-        fgraph->getNeighborEdgeSet(*it,edgeSet);
+        set<pair<uint32_t,uint32_t>>* edgeSet = fgraph->getNeighborEdgeSet(*it);
 
         set<pair<uint32_t,uint32_t>>::iterator it2;
         for(it2=edgeSet->begin(); it2!=edgeSet->end(); it2++)
@@ -296,7 +295,55 @@ void treeCoreDecompositionOnIncompleteGraph(AbstractGraph* subgraph, AbstractGra
     }
 }
 
-void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_index,AbstractGraph* insertSubGraph, AbstractGraph* fgraph)
+AbstractGraph* findCandidateInsertedGraph(AbstractGraph* agraph, AbstractGraph* cgraph_kminus1h, AbstractGraph* cgraph_kh, uint32_t k, uint32_t h)
+{
+    AbstractGraph* fgraph = new AbstractGraph(agraph);
+    set<uint32_t>* vertexSet = fgraph->getVertexIds();
+    while(vertexSet->size() != 0)
+    {
+        set<uint32_t>::iterator it = vertexSet->begin();
+        uint32_t v1 = *it;
+        set<pair<uint32_t,uint32_t>>* edgeSet = cgraph_kminus1h->getNeighborEdgeSet(v1);
+
+        while(edgeSet->size() != 0)
+        {
+            set<pair<uint32_t,uint32_t>>::iterator it2 = edgeSet->begin();
+            if(cgraph_kh!=nullptr && cgraph_kh->existEdge(*it,it2->first,it2->second))
+            {
+                edgeSet->erase(it2);
+                continue;
+            }
+            if(cgraph_kminus1h->isSatisfiedKVertex(it2->first,k) && cgraph_kminus1h->isSatisfiedHEdge({*it,it2->first},h))
+            {
+                uint32_t v2 = it2->first;
+                vertexSet->insert(v2);
+                fgraph->addEdge(v1,v2,it2->second);
+                edgeSet->erase(it2);
+                set<pair<uint32_t,uint32_t>>::iterator it3;
+                for(it3=edgeSet->begin(); it3!=edgeSet->end();)
+                {
+                    if(it3->first == v2)
+                    {
+                        fgraph->addEdge(v1,it3->first,it3->second);
+                        it3 = edgeSet->erase(it3);
+                    }
+                }
+
+            }
+        }
+        vertexSet->erase(it);
+        delete edgeSet;
+    }
+    delete vertexSet;
+
+    return fgraph;
+}
+
+
+// ograph: current whole graph = lasttime whole graph + inserSubGraph
+// solved: (k>1,h)core
+// problems to solve: (1,1)core, (1,h>1)core
+void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_index,AbstractGraph* insertSubGraph, AbstractGraph* ograph)
 {
     vector<AbstractGraph*>* approximateCoreGraphs = new vector<AbstractGraph*>;
     uint32_t** a_index = new uint32_t*[KMAX];
@@ -304,7 +351,7 @@ void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
     {
         a_index[i] = new uint32_t[HMAX]();
     }
-    treeCoreDecompositionOnIncompleteGraph(insertSubGraph,fgraph,approximateCoreGraphs,a_index);
+    treeCoreDecompositionOnIncompleteGraph(insertSubGraph,ograph,approximateCoreGraphs,a_index);
 
     vector<AbstractGraph*>::iterator ait;
     uint32_t count = 0;
@@ -321,27 +368,39 @@ void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
             }
         }
         count++;
-        if(c_index[k][h] == 0)
+        if(c_index[k][h] != 0 || (k==1 && h==1))
         {
-            if(k==1 && h==1)
-            {
-                AbstractGraph *cgraph = *coreGraphs->begin()+c_index[k][h];
-                AbstractGraph* ngraph = findNeighborGraph(agraph,cgraph);
-                AbstractGraph* pgraph = findAproximateCoreGraph(k,h,agraph,ngraph);
-                if(pgraph != nullptr)
-                    cgraph->joinGraph(pgraph);
+            AbstractGraph *cgraph_kminus1h = *coreGraphs->begin()+c_index[k-1][h];
+            AbstractGraph *cgraph_kh = *coreGraphs->begin()+c_index[k][h];
+            AbstractGraph *fgraph = findCandidateInsertedGraph(agraph,cgraph_kminus1h,cgraph_kh,k,h);
+            AbstractGraph* ngraph = findNeighborGraph(fgraph,cgraph_kh);
+            AbstractGraph* pgraph = findAproximateCoreGraph(k,h,fgraph,ngraph);
+            if(pgraph != nullptr)
+                cgraph_kh->joinGraph(pgraph);
 
-                delete ngraph;
-            }
-            else
-            {
-
-            }
+            delete fgraph;
+            delete ngraph;
+            delete pgraph;
         }
-
+        else
+        {
+            AbstractGraph *cgraph_kminus1h = *coreGraphs->begin()+c_index[k-1][h];
+            AbstractGraph *fgraph = findCandidateInsertedGraph(agraph,cgraph_kminus1h,nullptr,k,h);
+            AbstractGraph *cgraph_kh = findCoreGraph(k,h,fgraph);
+            if(cgraph_kh != nullptr)
+            {
+                coreGraphs->push_back(cgraph_kh);
+            }
+            delete fgraph;
+        }
     }
 
-
+    delete approximateCoreGraphs;
+    for(uint32_t i=0; i<KMAX; i++)
+    {
+        delete[] a_index[i];
+    }
+    delete[] a_index;
 }
 
 void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_index,AbstractGraph* delSubGraph, AbstractGraph* fgraph)
@@ -356,7 +415,7 @@ void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
 
     vector<AbstractGraph*>::iterator ait;
     uint32_t count = 0;
-    uint32_t k,h;
+    uint32_t k=1,h=1;
     for(ait = approximateCoreGraphs->begin(); ait != approximateCoreGraphs->end(); ait++)
     {
         AbstractGraph* agraph = *ait;
@@ -380,8 +439,7 @@ void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
         set<uint32_t>::iterator vit;
         for(vit = vIds->begin(); vit!= vIds->end(); vit++)
         {
-            set<pair<uint32_t,uint32_t>>* a_edgeSet = new set<pair<uint32_t,uint32_t>>;
-            agraph->getNeighborEdgeSet(*vit,a_edgeSet);
+            set<pair<uint32_t,uint32_t>>* a_edgeSet = agraph->getNeighborEdgeSet(*vit);
 
             set<pair<uint32_t,uint32_t>>::iterator eit;
             for(eit=a_edgeSet->begin(); eit!=a_edgeSet->end(); eit++)
@@ -409,7 +467,7 @@ void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
         {
             if(edgeQueue->size() == 0)
                 break;
-            set<pair<uint32_t,uint32_t>>::iterator edge = edgeQueue.begin();
+            set<pair<uint32_t,uint32_t>>::iterator edge = edgeQueue->begin();
             cgraph->eraseEdges(edge->first,edge->second);
             edgeQueue->erase(edge);
             if(cgraph->getNeighborNum(edge->first) < k)
@@ -434,6 +492,11 @@ void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
     }
 
     delete approximateCoreGraphs;
+    for(uint32_t i=0; i<KMAX; i++)
+    {
+        delete[] a_index[i];
+    }
+    delete[] a_index;
 }
 
 /*

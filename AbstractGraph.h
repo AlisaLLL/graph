@@ -13,11 +13,12 @@ public:
     AbstractVertex* getVertex(uint32_t vertexId);
     set<uint32_t>* getVertexIds();
     uint32_t getNeighborNum(uint32_t vertexId);
+
     //uint32_t getEdgeNum(uint32_t v1, uint32_t v2);
     uint32_t getVertexNum();
     uint32_t getVertexPairNum(); //<v1,v2> pair number,<v1,v2> exist at least an edge
     set<pair<uint32_t,uint32_t>>* getEdgeSet(); // set<(v1,v2)>, v1<v2;
-    void getNeighborEdgeSet(uint32_t vertexId, set<pair<uint32_t,uint32_t>>* edgeSet); // input currentVertexId,return set(neighborVertexId,timestamp)
+    set<pair<uint32_t,uint32_t>>* getNeighborEdgeSet(uint32_t vertexId); // input currentVertexId,return set(neighborVertexId,timestamp)
     void printEdges();
 
     void _addEdge(uint32_t sourceVertexId, uint32_t destVertexId, uint32_t timestamp);
