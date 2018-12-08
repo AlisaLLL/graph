@@ -181,11 +181,11 @@ bool AbstractGraph::isSatisfiedHEdge(pair<uint32_t,uint32_t> edge, uint32_t h)
 
 bool AbstractGraph::existEdge(uint32_t v1, uint32_t v2, uint32_t timestamp)
 {
-    if(!vertexMap->count(v1))
+    if(vertexMap->count(v1)==0 || vertexMap->count(v2)==0)
         return false;
-    if(!vertexMap->find(v1)->second->existEdgeTime(v2,timestamp))
-        return false;
-    return true;
+    if(vertexMap->find(v1)->second->existEdgeTime(v2,timestamp))
+        return true;
+    return false;
 }
 
 
@@ -249,17 +249,17 @@ void AbstractGraph::eraseVertex(queue<uint32_t>* q)
 
 void AbstractGraph::eraseVertex(uint32_t vertexId, set<uint32_t> *vertexSet, uint32_t k)
 {
-    eraseVertex(vertexId);
     vector<uint32_t>* v = vertexMap->find(vertexId)->second->getAdjacentVertexId();
     if(v != nullptr)
     {
         vector<uint32_t>::iterator it;
         for(it = v->begin(); it != v->end(); it++)
         {
-            if(getNeighborNum(*it) < k)
+            if(getNeighborNum(*it)-1 < k)
                 vertexSet->insert(*it);
         }
     }
+    eraseVertex(vertexId);
 }
 
 
