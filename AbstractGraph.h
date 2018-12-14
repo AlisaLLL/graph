@@ -13,6 +13,7 @@ public:
     AbstractVertex* getVertex(uint32_t vertexId);
     set<uint32_t>* getVertexIds();
     uint32_t getNeighborNum(uint32_t vertexId);
+    vector<uint32_t>* getAdjacentVertexId(uint32_t vertexId);
 
     //uint32_t getEdgeNum(uint32_t v1, uint32_t v2);
     uint32_t getVertexNum();
@@ -33,6 +34,7 @@ public:
     bool isSatisfiedKVertex(uint32_t vertexId, uint32_t k);
     bool isSatisfiedHEdge(pair<uint32_t,uint32_t> edge, uint32_t h);
     bool existEdge(uint32_t v1, uint32_t v2, uint32_t timestamp);
+    bool existVertex(uint32_t vertexId);
 
     //verex<k,egdes between (v1,v2) < h
     void unSatisfiedVertexAndEdge(uint32_t k, uint32_t h, set<uint32_t> *vertexSet, set<pair<uint32_t,uint32_t>> *edgeSet);

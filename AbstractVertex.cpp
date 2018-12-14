@@ -107,6 +107,7 @@ void AbstractVertex::getEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet)
 //edgeSet<neighborVertexId,timestamp>
 void AbstractVertex::getNeighborEdgeSet(set<pair<uint32_t,uint32_t>>* edgeSet)
 {
+    //cout << "GNE: edgeMap.size() = " << edgeMap->size() << endl;
     unordered_map<uint32_t,map<uint32_t,bool*>*>::iterator it;
     for(it=edgeMap->begin(); it!=edgeMap->end(); it++)
     {

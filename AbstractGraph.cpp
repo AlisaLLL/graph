@@ -1,6 +1,8 @@
 #include "AbstractGraph.h"
 #include <iostream>
 
+#define MAXSIZE 10000
+
 AbstractGraph::AbstractGraph()
 {
     vertexMap=new unordered_map<uint32_t,AbstractVertex*>;
@@ -52,6 +54,11 @@ set<uint32_t>* AbstractGraph::getVertexIds()
 uint32_t AbstractGraph::getNeighborNum(uint32_t vertexId)
 {
     return vertexMap->find(vertexId)->second->getNeighborNum();
+}
+
+vector<uint32_t>* AbstractGraph::getAdjacentVertexId(uint32_t vertexId)
+{
+    return vertexMap->find(vertexId)->second->getAdjacentVertexId();
 }
 
 void AbstractGraph::_addEdge(uint32_t sourceVertexId, uint32_t destVertexId, uint32_t timestamp)
@@ -133,6 +140,8 @@ set<pair<uint32_t,uint32_t>>* AbstractGraph::getEdgeSet()
 set<pair<uint32_t,uint32_t>>* AbstractGraph::getNeighborEdgeSet(uint32_t vertexId)
 {
     set<pair<uint32_t,uint32_t>>* edgeSet = new set<pair<uint32_t,uint32_t>>;
+    if(vertexMap->count(vertexId) == 0)
+        return edgeSet;
     vertexMap->find(vertexId)->second->getNeighborEdgeSet(edgeSet);
     return edgeSet;
 }
@@ -188,10 +197,17 @@ bool AbstractGraph::existEdge(uint32_t v1, uint32_t v2, uint32_t timestamp)
     return false;
 }
 
+bool AbstractGraph::existVertex(uint32_t vertexId)
+{
+    if(vertexMap->count(vertexId)==0)
+        return false;
+    return true;
+}
+
 
 void AbstractGraph::unSatisfiedVertexAndEdge(uint32_t k, uint32_t h, set<uint32_t> *vertexSet, set<pair<uint32_t,uint32_t>> *edgeSet)
 {
-    unordered_map<uint32_t,AbstractVertex*>::iterator it;
+    /*unordered_map<uint32_t,AbstractVertex*>::iterator it;
     for(it = vertexMap->begin(); it != vertexMap->end(); it++)
     {
         uint32_t neighborNum = getNeighborNum(it->first);
@@ -209,8 +225,69 @@ void AbstractGraph::unSatisfiedVertexAndEdge(uint32_t k, uint32_t h, set<uint32_
                 edgeSet->insert({*neighborId, it->first});
         }
         delete unSatisfiedNeighborId;
+    }*/
+
+    bool visited[MAXSIZE] = {0};
+    queue<uint32_t> vertexQueue;
+    
+    unordered_map<uint32_t,AbstractVertex*>::iterator it;
+    for(it = vertexMap->begin(); it != vertexMap->end(); it++)
+    {
+        uint32_t vId = it->first;
+        if(visited[vId] == 1)
+            continue;
+        visited[vId] = 1;
+        if(!isSatisfiedKVertex(vId,k))
+        {
+            vertexSet->insert(vId);
+        }
+        AbstractVertex* edgeMap = it->second;
+        vector<uint32_t> *neighborIds = edgeMap->getAdjacentVertexId();
+        vector<uint32_t>::iterator neighborId;
+        for(neighborId=neighborIds->begin(); neighborId!=neighborIds->end(); neighborId++)
+        {
+            vertexQueue.push(*neighborId);
+            if(!isSatisfiedHEdge({vId,*neighborId},h))
+            {
+                if(vId < *neighborId)
+                    edgeSet->insert({vId, *neighborId});
+                else
+                    edgeSet->insert({*neighborId, vId});
+            }
+            visited[*neighborId] = 1;
+        }
+        delete neighborIds;
+    
+        while(!vertexQueue.empty())
+        {
+            uint32_t vId = vertexQueue.front();
+            vertexQueue.pop();
+            if(!isSatisfiedKVertex(vId,k))
+            {
+                vertexSet->insert(vId);
+            }
+            AbstractVertex* edgeMap = vertexMap->begin()->second;
+            vector<uint32_t> *neighborIds = edgeMap->getAdjacentVertexId();
+            vector<uint32_t>::iterator neighborId;
+            for(neighborId=neighborIds->begin(); neighborId!=neighborIds->end(); neighborId++)
+            {
+                if(visited[*neighborId] == 1)
+                    continue;
+                vertexQueue.push(*neighborId);
+                if(!isSatisfiedHEdge({vId,*neighborId},h))
+                {
+                    if(vId < *neighborId)
+                        edgeSet->insert({vId, *neighborId});
+                    else
+                        edgeSet->insert({*neighborId, vId});
+                }
+                visited[*neighborId] = 1;
+            }
+            delete neighborIds;
+        }
     }
 }
+
 void AbstractGraph::eraseVertex(uint32_t vertexId)
 {
     //erase current vertex from adjacent vertexes(erase edge)
@@ -223,6 +300,7 @@ void AbstractGraph::eraseVertex(uint32_t vertexId)
             vertexMap->find(*itv)->second->eraseNeighborVertex(vertexId);
         }
     }
+    delete v;
 
     //erase current vertex
     unordered_map<uint32_t,AbstractVertex*>::iterator it;
@@ -249,17 +327,29 @@ void AbstractGraph::eraseVertex(queue<uint32_t>* q)
 
 void AbstractGraph::eraseVertex(uint32_t vertexId, set<uint32_t> *vertexSet, uint32_t k)
 {
+    //cout << "eraseVertex-set" << endl;
+    if(vertexMap->count(vertexId) == 0)  //??? why vertexId not in graph? is this right?
+        return;
     vector<uint32_t>* v = vertexMap->find(vertexId)->second->getAdjacentVertexId();
+    //cout << "00" <<endl;
     if(v != nullptr)
     {
+        //cout << "01" << endl;
         vector<uint32_t>::iterator it;
         for(it = v->begin(); it != v->end(); it++)
         {
+            //cout << "0" << endl;
             if(getNeighborNum(*it)-1 < k)
+            {
+               // cout << "1" <<endl;
                 vertexSet->insert(*it);
+                //cout << "2" << endl;
+            }
         }
     }
+    //cout << "eraseVertex" << endl;
     eraseVertex(vertexId);
+    delete v;
 }
 
 

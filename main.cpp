@@ -6,8 +6,8 @@
 
 using namespace std;
 
-#define KMAX 100
-#define HMAX 100
+#define KMAX 500
+#define HMAX 500
 
 void SplitString(const string& s1, vector<uint32_t>& v, const string& c)
 {
@@ -50,7 +50,7 @@ AbstractGraph* buildGraph(string filePath)
         SplitString(s, v, " ");  //v1,v2,t
         //cout << "addEdge" << endl;
 
-        graph->addEdge(v[0],v[1],v[3]);
+        graph->addEdge(v[0],v[1],v[2]);
     }
     ifs.close();
     return graph;
@@ -65,6 +65,7 @@ AbstractGraph* findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph)
     if(vertexSet->size()==cgraph->getVertexNum() || edgeSet->size()==cgraph->getVertexPairNum())
     {
         delete cgraph;
+        cout << "findCoreGraph: no (" << k << ", " << h << ")-core." << endl;
         return nullptr;
     }
 
@@ -100,6 +101,7 @@ AbstractGraph* findCoreGraph(uint32_t k, uint32_t h, AbstractGraph* fgraph)
     if(cgraph->getVertexNum() == 0 || cgraph->getVertexPairNum() == 0)
     {
         delete cgraph;
+        cout << "findCoreGraph: no (" << k << ", " << h << ")-core." << endl;
         return nullptr;
     }
     cout << "findCoreGraph: find (" << k << ", " << h << ")-core." << endl;
@@ -159,31 +161,46 @@ AbstractGraph* findNeighborGraph(AbstractGraph* subgraph, AbstractGraph* fgraph)
 {
     AbstractGraph* ngraph = new AbstractGraph(subgraph);
     set<uint32_t>* vIds = ngraph->getVertexIds();
+    //cout << "FNG: vIds.size() = " << vIds->size() << endl;
 
     set<uint32_t>::iterator it;
+    uint32_t i = 0;
     for(it = vIds->begin(); it!= vIds->end(); it++)
     {
         set<pair<uint32_t,uint32_t>>* edgeSet = fgraph->getNeighborEdgeSet(*it);
-
+        //cout << "FNG: edgeSet.size() = " << edgeSet->size() << endl;
         set<pair<uint32_t,uint32_t>>::iterator it2;
         for(it2=edgeSet->begin(); it2!=edgeSet->end(); it2++)
         {
-            ngraph->addEdge(*it,it2->first,it2->second);
+            if(!ngraph->existEdge(*it,it2->first,it2->second))
+            {
+                ngraph->addEdge(*it,it2->first,it2->second);
+            }
         }
-
         delete edgeSet;
     }
     delete vIds;
 
+    cout << "find neighbor graph." << endl;
     return ngraph;
 }
 
 
 AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* subgraph, AbstractGraph* fgraph)
 {
+    clock_t start,end,s,e;
+    s = clock();
+    // start = clock();
     AbstractGraph* agraph = new AbstractGraph(subgraph);
+    // end =clock();
+    //cout << "duplicate graph time: " << double(end-start)/CLOCKS_PER_SEC << "seconds" << endl;
+
+    // start = clock();
     AbstractGraph* ngraph = findNeighborGraph(subgraph, fgraph);
-    set<pair<uint32_t,uint32_t>> *edgeSet = agraph->getEdgeSet();    
+    // end = clock();
+    //cout << "findNeighborGraph time: " << double(end-start)/CLOCKS_PER_SEC << "seconds" << endl;
+
+    /*set<pair<uint32_t,uint32_t>> *edgeSet = agraph->getEdgeSet();
     set<uint32_t>* vertexSet = agraph->getVertexIds();
 
     set<uint32_t>::iterator it;
@@ -202,7 +219,12 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
             it2 = edgeSet->erase(it2);
         else
             it2++;
-    }
+    }*/
+
+
+    set<uint32_t> *vertexSet = new set<uint32_t>;
+    set<pair<uint32_t,uint32_t>> *edgeSet = new set<pair<uint32_t,uint32_t>>;
+    agraph->unSatisfiedVertexAndEdge(k,h,vertexSet,edgeSet);
 
     if(vertexSet->size()==agraph->getVertexNum() || edgeSet->size()==agraph->getVertexPairNum())
     {
@@ -212,6 +234,7 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
         delete ngraph;
         return nullptr;
     }
+    //cout << "test0" << endl;
 
     //erase unsatisfied edges
     while(1)
@@ -231,6 +254,7 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
         else if(ngraph->getNeighborNum(edge->second) < k)
             vertexSet->insert(edge->second);
     }
+    //cout << "test1" << endl;
 
     //erase unsatisfied vertices
     while(1)
@@ -239,10 +263,23 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
         if(vertexSet->size() == 0)
             break;
         set<uint32_t>::iterator vertex = vertexSet->begin();
+        vector<uint32_t> *neighborIds = agraph->getAdjacentVertexId(*vertex);
+        
         ngraph->eraseVertex(*vertex);
-        agraph->eraseVertex(*vertex,vertexSet,k);// erase *vertex and push its unsaitsfied neighbor into vertexSet
+        //cout << "test11" << endl;
+        agraph->eraseVertex(*vertex); 
         vertexSet->erase(vertex);
+        
+        vector<uint32_t>::iterator neighborId;
+        for(neighborId=neighborIds->begin(); neighborId!=neighborIds->end(); neighborId++)
+        {
+            if(!ngraph->existVertex(*neighborId))
+                continue;
+            if(!ngraph->isSatisfiedKVertex(*neighborId,k))
+                vertexSet->insert(*neighborId);
+        }
     }
+    //cout << "test2" << endl;
 
     delete vertexSet;
     delete edgeSet;
@@ -251,9 +288,13 @@ AbstractGraph* findAproximateCoreGraph(uint32_t k, uint32_t h, AbstractGraph* su
     if(agraph->getVertexNum()==0 || agraph->getVertexPairNum()==0)
     {
         delete agraph;
+        cout << "no approximate (" << k << "," << h << ")-core graph." << endl;
         return nullptr;
     }
+    e = clock();
     cout << "find approximate (" << k << "," << h << ")-core graph." << endl;
+    //cout << "time: " << double(e-s)/CLOCKS_PER_SEC << "seconds" << endl;
+
     return agraph;
 }
 
@@ -308,21 +349,21 @@ void treeCoreDecompositionOnIncompleteGraph(AbstractGraph* subgraph, AbstractGra
 
 AbstractGraph* findCandidateInsertedGraph(AbstractGraph* agraph, AbstractGraph* cgraph_kminus1h, AbstractGraph* cgraph_kh, uint32_t k, uint32_t h)
 { 
-    cgraph_kminus1h->printEdges();
+    //cgraph_kminus1h->printEdges();
     AbstractGraph* fgraph = new AbstractGraph(agraph);
     set<uint32_t>* vertexSet = fgraph->getVertexIds();
     while(vertexSet->size() != 0)
     {
-        cout <<"vertexSet->size() start "<< vertexSet->size()<<endl;
+        //cout <<"vertexSet->size() start "<< vertexSet->size()<<endl;
         set<uint32_t>::iterator it = vertexSet->begin();
         uint32_t v1 = *it;
-        cout << "v1: " << v1 << endl;
+        //cout << "v1: " << v1 << endl;
         set<pair<uint32_t,uint32_t>>* edgeSet = cgraph_kminus1h->getNeighborEdgeSet(v1);
         //cout << "edgeSet->size() " << edgeSet->size() << endl;
 
         while(edgeSet->size() != 0)
         {
-            cout << "edgeSet->size() " << edgeSet->size() << endl;
+            //cout << "edgeSet->size() " << edgeSet->size() << endl;
             set<pair<uint32_t,uint32_t>>::iterator it2 = edgeSet->begin();
             if(cgraph_kh!=nullptr && cgraph_kh->existEdge(*it,it2->first,it2->second))
             {
@@ -330,9 +371,9 @@ AbstractGraph* findCandidateInsertedGraph(AbstractGraph* agraph, AbstractGraph* 
                 edgeSet->erase(it2);
                 continue;
             }
-            cout << *it <<" "<<it2->first << " " << it2->second << endl;
-            cout << cgraph_kminus1h->isSatisfiedKVertex(it2->first,k) << endl;
-            cout << cgraph_kminus1h->isSatisfiedHEdge({*it,it2->first},h)<<endl;
+            //cout << *it <<" "<<it2->first << " " << it2->second << endl;
+            //cout << cgraph_kminus1h->isSatisfiedKVertex(it2->first,k) << endl;
+            //cout << cgraph_kminus1h->isSatisfiedHEdge({*it,it2->first},h)<<endl;
             //break;
             if(cgraph_kminus1h->isSatisfiedKVertex(it2->first,k) && cgraph_kminus1h->isSatisfiedHEdge({*it,it2->first},h))
             {
@@ -343,16 +384,16 @@ AbstractGraph* findCandidateInsertedGraph(AbstractGraph* agraph, AbstractGraph* 
                     continue;
                 }
                 vertexSet->insert(v2);
-                cout << "fgraph->addEdge( " <<v1<<","<<v2<<","<<it2->second<<")"<<endl;
+                //cout << "fgraph->addEdge( " <<v1<<","<<v2<<","<<it2->second<<")"<<endl;
                 fgraph->addEdge(v1,v2,it2->second);
                 edgeSet->erase(it2);
-                cout << "edgeSet->erase(" << it2->first<<","<<it2->second<<")"<<endl;
+                //cout << "edgeSet->erase(" << it2->first<<","<<it2->second<<")"<<endl;
                 set<pair<uint32_t,uint32_t>>::iterator it3;
                 for(it3=edgeSet->begin(); it3!=edgeSet->end();)
                 {
                     if(it3->first == v2)
                     {
-                        cout << "fgraph->addEdge( " <<v1<<","<<it3->first<<","<<it3->second<<")"<<endl;
+                        //cout << "fgraph->addEdge( " <<v1<<","<<it3->first<<","<<it3->second<<")"<<endl;
                         fgraph->addEdge(v1,it3->first,it3->second);
                         it3 = edgeSet->erase(it3);
                     }
@@ -363,9 +404,9 @@ AbstractGraph* findCandidateInsertedGraph(AbstractGraph* agraph, AbstractGraph* 
             else
                 edgeSet->erase(it2);
         }
-        cout << "VertexSet->erase(" << *it << ")" << endl;
+        //cout << "VertexSet->erase(" << *it << ")" << endl;
         vertexSet->erase(it);
-        cout << "vertexSet->size() end" << vertexSet->size() << endl;
+        //cout << "vertexSet->size() end" << vertexSet->size() << endl;
         delete edgeSet;
     }
     delete vertexSet;
@@ -404,8 +445,8 @@ void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
                 break;
         }
         count++;
-        cout << count << endl;
-        cout << k << " " << h << endl;
+        //cout << count << endl;
+        //cout << k << " " << h << endl;
 
         if(*K_max < k) *K_max = k;
         if(*H_max < h) *H_max = h;
@@ -423,22 +464,28 @@ void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
             if(k>1)
             {
                 AbstractGraph *cgraph_kminus1h = *(coreGraphs->begin()+c_index[k-1][h]);
-                cout << "----- coreGraphMinus: ("<<k-1<<","<<h<<")-core -----"<<endl;
+                //cout << "----- coreGraphMinus: ("<<k-1<<","<<h<<")-core -----"<<endl;
                 fgraph = findCandidateInsertedGraph(agraph,cgraph_kminus1h,cgraph_kh,k,h);
+                cout << "0" << endl;
             }
             else
             {
                 AbstractGraph *cgraph_khminus1 = *(coreGraphs->begin()+c_index[k][h-1]);
-                cout << "----- coreGraphMinus: ("<<k<<","<<h-1<<")-core -----"<<endl;
+                //cout << "----- coreGraphMinus: ("<<k<<","<<h-1<<")-core -----"<<endl;
                 fgraph = findCandidateInsertedGraph(agraph,cgraph_khminus1,cgraph_kh,k,h);
-                cout << "test" << endl;
+                //cout << "test" << endl;
             }
+            cout << "test0" << endl;
             AbstractGraph* ngraph = findNeighborGraph(fgraph,cgraph_kh);
+            cout << "test1" << endl;
             AbstractGraph* pgraph = findAproximateCoreGraph(k,h,fgraph,ngraph);
-            cout<< "pgraph: ("<<k<<","<<h<<")-core."<<endl;
-            pgraph->printEdges();
+            //cout<< "pgraph: ("<<k<<","<<h<<")-core."<<endl;
+            //pgraph->printEdges();
             if(pgraph != nullptr)
+            {
                 cgraph_kh->joinGraph(pgraph);
+                cout << "update (" << k << "," << h << ")-core graph." << endl;
+            }
 
             delete fgraph;
             delete ngraph;
@@ -450,28 +497,28 @@ void updateCoreGraphInsert(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
             if(k>1)
             {
                 AbstractGraph *cgraph_kminus1h = *(coreGraphs->begin()+c_index[k-1][h]);
-                cout << "----- coreGraphMinus: ("<<k-1<<","<<h<<")-core -----"<<endl;
+                //cout << "----- coreGraphMinus: ("<<k-1<<","<<h<<")-core -----"<<endl;
                 fgraph = findCandidateInsertedGraph(agraph,cgraph_kminus1h,nullptr,k,h);
             }
             else
             {
                 AbstractGraph *cgraph_khminus1 = *(coreGraphs->begin()+c_index[k][h-1]);
-                cout << "----- coreGraphMinus: ("<<k<<","<<h-1<<")-core -----"<<endl;
+                //cout << "----- coreGraphMinus: ("<<k<<","<<h-1<<")-core -----"<<endl;
                 fgraph = findCandidateInsertedGraph(agraph,cgraph_khminus1,nullptr,k,h);
             }
-            cout << "----- (" << k << "," <<h<<")-core fgraph -----"<<endl;
-            fgraph->printEdges();
-
+            //cout << "----- (" << k << "," <<h<<")-core fgraph -----"<<endl;
+            //fgraph->printEdges();
             AbstractGraph *cgraph_kh = findCoreGraph(k,h,fgraph);
             //AbstractGraph *cgraph_kh = fgraph;
-            cout << "----- (" << k << "," <<h<<")-core graph -----"<<endl;
-            cgraph_kh->printEdges();
+            //cout << "----- (" << k << "," <<h<<")-core graph -----"<<endl;
+            //cgraph_kh->printEdges();
             if(cgraph_kh != nullptr)
             {
                 coreGraphs->push_back(cgraph_kh);
                 c_index[k][h] = uint32_t(coreGraphs->size()-1);
+                cout << "add (" << k << "," << h << ")-core graph." << endl;
             }
-            //delete fgraph;
+            delete fgraph;
         }
     }
 
@@ -590,7 +637,7 @@ void updateCoreGraphRemove(vector<AbstractGraph*>* coreGraphs, uint32_t** c_inde
 int main()
 {
     // original graph
-    AbstractGraph* graph = buildGraph("/home/netlab/C++/GraphFrame/out.sociopatterns-hypertext");
+    AbstractGraph* graph = buildGraph("/home/netlab/C++/GraphFrame/data/sociopatterns-infectious/before1.infectious");
     cout << "----- Original Graph -----" << endl;
     cout << "vertex size: " << graph->getVertexNum() << endl;
     //graph->printEdges();
@@ -611,7 +658,10 @@ int main()
     clock_t end = clock();
 
     uint32_t k,h;
+    //K_max & H_max respectively, not uinted
     cout << "K_max: " << K_max << " H_max: " << H_max << endl;
+
+
     /*for(k=1; k<=K_max; ++k)
     {
         for(h=1; h<=H_max; ++h)
@@ -660,15 +710,40 @@ int main()
         }
     }*/
 
-    /*
-    cout << "---- updateCoreGraphInsert ----" << endl;
-    AbstractGraph* insSubGraph = buildGraph("/home/netlab/C++/GraphFrame/out.sociopatterns-hypertext");
+
+    //cout << "---- updateCoreGraphInsert ----" << endl;
+    AbstractGraph* insSubGraph = buildGraph("/home/netlab/C++/GraphFrame/data/sociopatterns-infectious/after1.infectious");
     graph->joinGraph(insSubGraph);
+
+
+    /*************************/
+
+    cout << "----- 9+10 Core Decomposition -----" << endl;
+    start = clock();
+    vector<AbstractGraph*>* coreGraphs_2 = new vector<AbstractGraph*>;
+    uint32_t **index_2 = new uint32_t*[KMAX];
+    for(uint32_t i=0; i<KMAX; i++)
+    {
+        index_2[i] = new uint32_t[HMAX]();
+    }
+    //uint32_t K_max=1,H_max=1;
+    treeCoreDecomposition(graph,coreGraphs_2,index_2,&K_max,&H_max);
+    end = clock();
+    cout << "9+10 Core Decomposition time: " << double(end-start)/CLOCKS_PER_SEC << "seconds" << endl;
+
+    /****************************/
+
+
+
+    cout << "---- updateCoreGraphInsert ----" << endl;
+    start = clock();
     updateCoreGraphInsert(coreGraphs,index,insSubGraph,graph,&K_max,&H_max);
+    end = clock();
+    cout << "updateCoreGraphInsert time: " << double(end-start)/CLOCKS_PER_SEC << "seconds" << endl;
 
-    uint32_t k,h;
+    //uint32_t k,h;
     cout << "K_max: " << K_max << " H_max: " << H_max << endl;
-
+/*
     for(k=1; k<=K_max; ++k)
     {
         for(h=1; h<=H_max; ++h)
